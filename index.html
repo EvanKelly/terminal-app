@@ -206,25 +206,25 @@
             <div class="terminal-title">Evan and Emily's Poetry Guestbook</div>
             <div class="terminal-controls">
                 <button class="print-button" id="printButton" disabled>Print Last Response</button>
-                <span class="control minimize">─</span>
-                <span class="control maximize">□</span>
-                <span class="control close">×</span>
             </div>
         </div>
         <div class="terminal-body">
             <div class="terminal-output" id="terminalOutput">
                 <div class="output-line">Welcome to the Poetry Guestbook. You can use the terminal to craft a poem to save for Ev & Em</div>
+                <div class="output-line">Just type your message and press Enter to chat with the AI poet!</div>
                 <div class="output-line">Type 'help' for available commands</div>
-                <div class="output-line">Type 'clear' to clear the terminal</div>
                 <div class="output-line"></div>
             </div>
             <div class="terminal-input-line">
                 <span class="prompt">$</span>
-                <input type="text" id="terminalInput" class="terminal-input" placeholder="Enter command..." autocomplete="off">
+                <input type="text" id="terminalInput" class="terminal-input" placeholder="Type your message to the AI poet..." autocomplete="off">
             </div>
         </div>
     </div>
 
+    <!-- Load configuration -->
+    <script src="config.js"></script>
+    
     <script>
         class RetroTerminal {
             constructor() {
@@ -265,20 +265,6 @@
                     }
                 });
 
-                document.querySelector('.control.close').addEventListener('click', () => {
-                    this.addOutputLine('Terminal closed. Goodbye!');
-                    setTimeout(() => {
-                        window.close();
-                    }, 1000);
-                });
-
-                document.querySelector('.control.minimize').addEventListener('click', () => {
-                    this.addOutputLine('Minimize function not implemented in this demo.');
-                });
-
-                document.querySelector('.control.maximize').addEventListener('click', () => {
-                    this.addOutputLine('Maximize function not implemented in this demo.');
-                });
 
                 // Add print button event listener
                 this.printButton.addEventListener('click', () => {
@@ -343,8 +329,8 @@
                         this.scrollToBottom();
                         break;
                     default:
-                        this.addOutputLine(`Command not found: ${cmd}. Type 'help' for available commands. use 'chat' followed by a message to interact with ChatGPT
-                        `);
+                        // Default behavior: send any unrecognized command to ChatGPT
+                        this.chatWithGPT(command);
                 }
 
                 this.terminalInput.value = '';
@@ -399,8 +385,18 @@
                 this.addOutputLine('Available commands:');
                 this.addOutputLine('  help     - Show this help message');
                 this.addOutputLine('  clear    - Clear the terminal');
-                this.addOutputLine('  chat     - Send a message to ChatGPT');
                 this.addOutputLine('  clear-chat - Clear chat conversation history');
+                this.addOutputLine('  date     - Show current date and time');
+                this.addOutputLine('  echo     - Echo a message');
+                this.addOutputLine('  matrix   - Toggle matrix rain effect');
+                this.addOutputLine('  ls/dir   - List files');
+                this.addOutputLine('  pwd      - Show current directory');
+                this.addOutputLine('  whoami   - Show user info');
+                this.addOutputLine('  neofetch - Show system information');
+                this.addOutputLine('  set-name - Set your name');
+                this.addOutputLine('  scroll-top/scroll-bottom - Navigate terminal');
+                this.addOutputLine('');
+                this.addOutputLine('Any other text will be sent to ChatGPT for poem generation!');
             }
 
             clearTerminal() {
@@ -507,67 +503,78 @@
 
             printLastResponse() {
                 if (!this.lastChatGPTResponse) {
-                    this.addOutputLine('No response to print. Use the chat command first.');
+                    this.addOutputLine('No response to print. Generate a poem first!');
                     return;
                 }
 
-                // Create a new window for printing
-                const printWindow = window.open('', '_blank');
-                printWindow.document.write(`
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <title>Evan and Emily's Poetry Guestbook - Printed Response</title>
-                        <style>
-                            body {
-                                font-family: 'Courier New', monospace;
-                                background-color: white;
-                                color: black;
-                                padding: 20px;
-                                line-height: 1.6;
-                            }
-                            .header {
-                                text-align: center;
-                                border-bottom: 2px solid #000;
-                                padding-bottom: 10px;
-                                margin-bottom: 20px;
-                            }
-                            .poem {
-                                white-space: pre-wrap;
-                                font-size: 14px;
-                                margin: 20px 0;
-                            }
-                            .footer {
-                                margin-top: 30px;
-                                text-align: center;
-                                font-size: 12px;
-                                color: #666;
-                            }
-                            @media print {
-                                body { margin: 0; }
-                                .no-print { display: none; }
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="header">
-                            <h1>Evan and Emily's Poetry Guestbook</h1>
-                            <p>Generated on ${new Date().toLocaleString()}</p>
-                        </div>
-                        <div class="poem">${this.lastChatGPTResponse}</div>
-                        <div class="footer">
-                            <p>Printed from the Poetry Guestbook Terminal</p>
-                        </div>
-                        <div class="no-print" style="margin-top: 20px; text-align: center;">
-                            <button onclick="window.print()">Print</button>
-                            <button onclick="window.close()">Close</button>
-                        </div>
-                    </body>
-                    </html>
-                `);
-                printWindow.document.close();
-                
-                this.addOutputLine('Print window opened. The response is ready for printing.');
+                try {
+                    // Create a new window for printing
+                    const printWindow = window.open('', '_blank', 'width=800,height=600');
+                    
+                    if (!printWindow) {
+                        this.addOutputLine('Error: Pop-up blocked. Please allow pop-ups for this site.');
+                        return;
+                    }
+
+                    printWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>Poem</title>
+                            <style>
+                                body {
+                                    font-family: 'Courier New', monospace;
+                                    background-color: white;
+                                    color: black;
+                                    padding: 20px;
+                                    line-height: 1.6;
+                                    margin: 0;
+                                }
+                                .poem {
+                                    white-space: pre-wrap;
+                                    font-size: 16px;
+                                    text-align: center;
+                                    max-width: 600px;
+                                    margin: 0 auto;
+                                }
+                                .controls {
+                                    margin-top: 30px;
+                                    text-align: center;
+                                }
+                                .controls button {
+                                    background-color: #007bff;
+                                    color: white;
+                                    border: none;
+                                    padding: 10px 20px;
+                                    margin: 0 10px;
+                                    cursor: pointer;
+                                    border-radius: 4px;
+                                    font-size: 14px;
+                                }
+                                .controls button:hover {
+                                    background-color: #0056b3;
+                                }
+                                @media print {
+                                    .controls { display: none; }
+                                    body { margin: 0; padding: 20px; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="poem">${this.lastChatGPTResponse}</div>
+                            <div class="controls">
+                                <button onclick="window.print()">Print</button>
+                                <button onclick="window.close()">Close</button>
+                            </div>
+                        </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                    
+                    this.addOutputLine('Print window opened. The poem is ready for printing.');
+                } catch (error) {
+                    this.addOutputLine('Error opening print window: ' + error.message);
+                }
             }
 
             setUserName(name) {
@@ -590,10 +597,12 @@
                 }
                 this.addOutputLine('ChatGPT: thinking...');
                 this.scrollToBottom();
-                // Insert your OpenAI API key below
-                const OPENAI_API_KEY = 'YOUR_OPENAI_API_KEY_HERE'; // <-- REPLACE THIS
-                if (OPENAI_API_KEY === 'YOUR_OPENAI_API_KEY_HERE') {
-                    this.addOutputLine('Error: Please insert your OpenAI API key in the code.');
+                
+                // Get API key from config file
+                const OPENAI_API_KEY = window.CONFIG?.OPENAI_API_KEY;
+                if (!OPENAI_API_KEY || OPENAI_API_KEY === 'YOUR_OPENAI_API_KEY_HERE') {
+                    this.addOutputLine('Error: Please configure your OpenAI API key in config.js');
+                    this.addOutputLine('Copy config.template.js to config.js and add your API key');
                     return;
                 }
                 
@@ -616,7 +625,7 @@
                             messages: [
                                 { 
                                     role: 'system', 
-                                    content: `You are an AI assistant integrated into a retro-style terminal interface. 
+                                    content: `You are a poet integrated into a retro-style terminal interface. 
                                     
 CONTEXT:
 - You're running in a web-based terminal with a green-on-black color scheme
@@ -625,7 +634,7 @@ CONTEXT:
 - Evan and Emily are getting married on September 27th, 2025 in Zion, Utah
 - Evan and Emily have a dog named Kogi who is 40lbs and black and has really nice ears
 - Your role at this wedding is to generate love poems using the prompt of each guest that should describe features of the type of poem they want you to generate
-- You should help each guest generate a poem that Emily and Evan will love and save forever
+- You should help each guest generate a poem that makes the guest think about love in a positive way
 - Evan is from Richmond, Virginia and went to Princeton University
 - Evan was on the swim team at Princeton University
 - Emily is from Boston, Massachusetts and went to Columbia University after transferring from Northwestern University
@@ -638,16 +647,21 @@ CONTEXT:
 - Evan and Emily call Kogi "little mouse"
 - Kogi is 5 years old
 - Kogi is from West Virginia
+- The poems you generate will be printed from a small printer, so make sure when you answer with the poem it is it's own response with no other comments
 
 RESPONSE STYLE:
-- Should be in a poem format about Emily and Evan with input from the guest
+- For the first response with a new guest, say "Hello, welcome to Kogi's Love Poem Generator, what kind of poem can I write for you today? Tell me your name and some relevant details that I can use when writing"
+- Should be in a poem format that is unique to the guests prompts and is romantic
 - You should ask guests their name and use it in the poem
 - you should ask guests what style of poem they want you to generate
 - you should ask guests what the theme of the poem should be
+- when you respond with the poem, don't include anything before the poem starts or after the poem except the inscription
+- You can ask guest for details, but don't ask questions in the generated poem. The generated poem should be about love and include the details they gave you. Feel free to ask for clarification before generating the poem.
 - you should ask guests important details about Evan and Emily they want to include
-- you should use the knowledge you have about Evan and Emily to generate a poem that is unique to them
-- Include line breaks in the poem that match the meter of the poem
-- sign the poem with the name of the guest generating the poem
+- If you do not have enough information about the guest to generate a unique poem, ask for more information
+- If the guest asks to include details about Evan and Emily, you can, but otherwise don't use the context you know about Evan and Emily
+- In the final poem response, include line breaks that match the meter of the poem, but for other responses use normal punctuation and line breaks.
+- Sign the poem with an inscription that says "For [the guest's name]" and the date and place of the wedding without any dashes.
 - each poem you generate should be unique for each guest`
                                 },
                                 ...this.chatHistory // Include conversation history
@@ -676,7 +690,16 @@ RESPONSE STYLE:
                     // Enable the print button
                     this.printButton.disabled = false;
                     
-                    this.addOutputLine('ChatGPT: ' + reply);
+                    // Display the ChatGPT response with preserved line breaks
+                    const replyLines = reply.split('\n');
+                    this.addOutputLine('ChatGPT:');
+                    replyLines.forEach(line => {
+                        if (line.trim()) {
+                            this.addOutputLine('  ' + line);
+                        } else {
+                            this.addOutputLine(''); // Empty line for spacing
+                        }
+                    });
                 } catch (err) {
                     // Remove the 'thinking...' line
                     const outputLines = this.terminalOutput.querySelectorAll('.output-line');
