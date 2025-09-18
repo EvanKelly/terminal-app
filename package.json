@@ -1,0 +1,54 @@
+{
+  "name": "poetry-guestbook-terminal",
+  "version": "1.0.0",
+  "description": "A retro terminal interface for generating love poems at Evan and Emily's wedding",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build-win": "electron-builder --win",
+    "build-mac": "electron-builder --mac",
+    "build-linux": "electron-builder --linux",
+    "dist": "npm run build"
+  },
+  "keywords": [
+    "poetry",
+    "terminal",
+    "wedding",
+    "electron",
+    "ai"
+  ],
+  "author": "Evan Kelly",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^27.0.0",
+    "electron-builder": "^24.6.4"
+  },
+  "dependencies": {
+    "pdfkit": "^0.13.0"
+  },
+  "build": {
+    "appId": "com.evankelly.poetry-guestbook",
+    "productName": "Poetry Guestbook Terminal",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "config.template.js",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Office"
+    }
+  }
+}

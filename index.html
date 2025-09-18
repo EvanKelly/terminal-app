@@ -501,12 +501,39 @@
                 this.addOutputLine('Chat conversation history cleared.');
             }
 
-            printLastResponse() {
+            async printLastResponse() {
                 if (!this.lastChatGPTResponse) {
                     this.addOutputLine('No response to print. Generate a poem first!');
                     return;
                 }
 
+                try {
+                    // Check if we're running in Electron
+                    if (window.electronAPI) {
+                        this.addOutputLine('Printing directly to printer...');
+                        
+                        // Use Electron's direct printing
+                        const result = await window.electronAPI.printPoem(this.lastChatGPTResponse);
+                        
+                        if (result.success) {
+                            this.addOutputLine(`Poem printed successfully to ${result.printer}!`);
+                        } else {
+                            this.addOutputLine(`Print failed: ${result.error}`);
+                            this.addOutputLine('Falling back to browser print...');
+                            this.fallbackPrint();
+                        }
+                    } else {
+                        // Fallback to browser printing
+                        this.fallbackPrint();
+                    }
+                } catch (error) {
+                    this.addOutputLine('Error printing: ' + error.message);
+                    this.addOutputLine('Falling back to browser print...');
+                    this.fallbackPrint();
+                }
+            }
+
+            fallbackPrint() {
                 try {
                     // Create a new window for printing
                     const printWindow = window.open('', '_blank', 'width=800,height=600');
@@ -599,10 +626,32 @@
                 this.scrollToBottom();
                 
                 // Get API key from config file
-                const OPENAI_API_KEY = window.CONFIG?.OPENAI_API_KEY;
+                let OPENAI_API_KEY;
+                
+                if (window.electronAPI) {
+                    // In Electron, try to read config from file
+                    try {
+                        const configResult = await window.electronAPI.readConfig();
+                        if (configResult.exists) {
+                            // Parse the config file content
+                            const configMatch = configResult.content.match(/OPENAI_API_KEY:\s*['"`]([^'"`]+)['"`]/);
+                            OPENAI_API_KEY = configMatch ? configMatch[1] : null;
+                        }
+                    } catch (error) {
+                        console.error('Error reading config in Electron:', error);
+                    }
+                } else {
+                    // In browser, use the loaded config
+                    OPENAI_API_KEY = window.CONFIG?.OPENAI_API_KEY;
+                }
+                
                 if (!OPENAI_API_KEY || OPENAI_API_KEY === 'YOUR_OPENAI_API_KEY_HERE') {
-                    this.addOutputLine('Error: Please configure your OpenAI API key in config.js');
-                    this.addOutputLine('Copy config.template.js to config.js and add your API key');
+                    this.addOutputLine('Error: Please configure your OpenAI API key');
+                    if (window.electronAPI) {
+                        this.addOutputLine('Create config.js file with your API key');
+                    } else {
+                        this.addOutputLine('Copy config.template.js to config.js and add your API key');
+                    }
                     return;
                 }
                 

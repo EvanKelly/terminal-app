@@ -22,3 +22,19 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Node modules and build artifacts
+node_modules/
+dist/
+*.asar
+*.map
+
+# Platform-specific artifacts
+*.AppImage
+*.dmg
+*.exe
+*.msi
+*.pkg
+
+# Backup files
+index_backup.html
