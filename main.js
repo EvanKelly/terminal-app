@@ -101,9 +101,21 @@ ipcMain.handle('print-poem', async (event, poemText) => {
 function extractPoemTitle(poemText) {
   // Get the first line as the poem title
   const lines = poemText.split('\n');
-  const firstLine = lines[0].trim();
+  let firstLine = lines[0].trim();
   
-  // Return the first line if it's not empty and not too long
+  // Strip common title prefixes
+  const titlePrefixes = [
+    /^Title:\s*/i,
+    /^Poem Title:\s*/i,
+    /^Title\s*/i,
+    /^Poem\s*/i
+  ];
+  
+  for (const prefix of titlePrefixes) {
+    firstLine = firstLine.replace(prefix, '').trim();
+  }
+  
+  // Return the cleaned first line if it's not empty and not too long
   if (firstLine && firstLine.length > 0 && firstLine.length < 50) {
     return firstLine;
   }
@@ -168,6 +180,9 @@ function formatForZebraLabel(poemText, poemTitle, guestName, weddingDate, weddin
     return line;
   });
   
+  const footerLine1 = 'From Kogi\'s Poetry Guestbook';
+  const footerLine2 = footer;
+  
   return [
     '='.repeat(40),
     header.padStart((40 + header.length) / 2),
@@ -176,7 +191,8 @@ function formatForZebraLabel(poemText, poemTitle, guestName, weddingDate, weddin
     ...formattedLines,
     '',
     '='.repeat(40),
-    footer.padStart((40 + footer.length) / 2),
+    footerLine1.padStart((40 + footerLine1.length) / 2),
+    footerLine2.padStart((40 + footerLine2.length) / 2),
     '='.repeat(40)
   ].join('\n');
 }

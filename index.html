@@ -560,7 +560,7 @@
                         <!DOCTYPE html>
                         <html>
                         <head>
-                            <title>Poem Label</title>
+                            <title>Kogi's Poetry Guestbook</title>
                             <style>
                                 body {
                                     font-family: 'Courier New', monospace;
@@ -578,6 +578,9 @@
                                     text-align: center;
                                     border: 1px solid #ccc;
                                     padding: 8px;
+                                    display: flex;
+                                    flex-direction: column;
+                                    min-height: 6in;
                                 }
                                 .header {
                                     font-weight: bold;
@@ -591,6 +594,10 @@
                                     font-size: 11px;
                                     line-height: 1.3;
                                     margin: 8px 0;
+                                    flex: 1;
+                                    display: flex;
+                                    flex-direction: column;
+                                    justify-content: center;
                                 }
                                 .footer {
                                     font-size: 10px;
@@ -618,7 +625,18 @@
                                 @media print {
                                     .controls { display: none; }
                                     body { margin: 0; padding: 5px; }
-                                    .label { border: none; }
+                                    .label { 
+                                        border: none; 
+                                        min-height: 6in;
+                                        display: flex;
+                                        flex-direction: column;
+                                    }
+                                    .poem {
+                                        flex: 1;
+                                        display: flex;
+                                        flex-direction: column;
+                                        justify-content: center;
+                                    }
                                 }
                             </style>
                         </head>
@@ -629,6 +647,7 @@
                                 </div>
                                 <div class="poem">${poemContent}</div>
                                 <div class="footer">
+                                    From Kogi's Poetry Guestbook<br>
                                     ${weddingDate} • ${weddingLocation}
                                 </div>
                             </div>
@@ -650,19 +669,34 @@
             extractPoemTitle(poemText) {
                 // Get the first line as the poem title
                 const lines = poemText.split('\n');
-                const firstLine = lines[0].trim();
+                let firstLine = lines[0].trim();
                 
                 console.log('extractPoemTitle - firstLine:', JSON.stringify(firstLine));
                 console.log('extractPoemTitle - length:', firstLine.length);
                 
-                // Return the first line if it's not empty and not too long
+                // Strip common title prefixes
+                const titlePrefixes = [
+                    /^Title:\s*/i,
+                    /^Poem Title:\s*/i,
+                    /^Title\s*/i,
+                    /^Poem\s*/i
+                ];
+                
+                for (const prefix of titlePrefixes) {
+                    firstLine = firstLine.replace(prefix, '').trim();
+                }
+                
+                // Return the cleaned first line if it's not empty and not too long
                 if (firstLine && firstLine.length > 0 && firstLine.length < 100) {
                     return firstLine;
                 }
                 
                 // If first line is empty, try the second line
                 if (lines.length > 1) {
-                    const secondLine = lines[1].trim();
+                    let secondLine = lines[1].trim();
+                    for (const prefix of titlePrefixes) {
+                        secondLine = secondLine.replace(prefix, '').trim();
+                    }
                     if (secondLine && secondLine.length > 0 && secondLine.length < 100) {
                         return secondLine;
                     }
@@ -797,14 +831,14 @@ RESPONSE STYLE:
 - you should ask guests what style of poem they want you to generate
 - you should ask guests what the theme of the poem should be
 - when you respond with the poem, don't include anything before the poem starts or after the poem except the inscription.
-- Come up with a title of the poem and make that the first line you respond with before the poem. Don't include any other characters or identifiers, just the title"
+- Come up with a title for the poem and make that the first line you respond with before the poem. The title should be just the title text itself - do not include any prefixes like "Title:" or "Poem Title:" or any other identifiers. Just the title alone on the first line.
 - You can ask guest for details, but don't ask questions in the generated poem. The generated poem should be about love and include the details they gave you. Feel free to ask for clarification before generating the poem.
 - If you do not have enough information about the guest to generate a unique poem, ask for more information
 - If the guest asks to include details about Evan and Emily, you can, but otherwise don't use the context you know about Evan and Emily
 - In the final poem response, include line breaks that match the meter of the poem, but for other responses use normal punctuation and line breaks.
 - Include an inscription at the end of the poem that says "Created for [the guest's name]"
 - each poem you generate should be unique for each guest
-- Limit the poems to maximum of 13 lines so they fit on the printed paper`
+- Limit the poems to maximum of 22 lines so they fit on the printed paper`
                                 },
                                 ...this.chatHistory // Include conversation history
                             ]
