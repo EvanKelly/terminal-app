@@ -203,7 +203,7 @@
 <body>
     <div class="terminal-container">
         <div class="terminal-header">
-            <div class="terminal-title">Evan and Emily's Poetry Guestbook</div>
+            <div class="terminal-title" id="terminalTitle">Evan and Emily's Poetry Guestbook</div>
             <div class="terminal-controls">
                 <button class="print-button" id="printButton" disabled>Print Last Response</button>
             </div>
@@ -231,6 +231,7 @@
                 this.terminalOutput = document.getElementById('terminalOutput');
                 this.terminalInput = document.getElementById('terminalInput');
                 this.printButton = document.getElementById('printButton');
+                this.terminalTitle = document.getElementById('terminalTitle');
                 this.commandHistory = [];
                 this.historyIndex = -1;
                 this.isMatrixActive = false;
@@ -498,6 +499,7 @@
                 this.chatHistory = [];
                 this.lastChatGPTResponse = null;
                 this.printButton.disabled = true;
+                this.terminalTitle.textContent = 'Evan and Emily\'s Poetry Guestbook';
                 this.addOutputLine('Chat conversation history cleared.');
             }
 
@@ -543,11 +545,16 @@
                         return;
                     }
 
-                    // Extract guest name from the poem if it exists
+                    // Extract poem title (first line) and guest name
+                    const poemTitle = this.extractPoemTitle(this.lastChatGPTResponse);
                     const guestName = this.extractGuestName(this.lastChatGPTResponse);
                     const currentDate = new Date().toLocaleDateString();
                     const weddingDate = 'September 27, 2025';
                     const weddingLocation = 'Zion, Utah';
+                    
+                    // Remove title from poem content for printing (since title appears in header)
+                    const poemLines = this.lastChatGPTResponse.split('\n');
+                    const poemContent = poemLines.slice(1).join('\n'); // Skip first line (title)
 
                     printWindow.document.write(`
                         <!DOCTYPE html>
@@ -618,9 +625,9 @@
                         <body>
                             <div class="label">
                                 <div class="header">
-                                    ${guestName ? `For ${guestName}` : 'Wedding Guest Poem'}
+                                    ${poemTitle || 'Wedding Guest Poem'}
                                 </div>
-                                <div class="poem">${this.lastChatGPTResponse}</div>
+                                <div class="poem">${poemContent}</div>
                                 <div class="footer">
                                     ${weddingDate} • ${weddingLocation}
                                 </div>
@@ -640,18 +647,49 @@
                 }
             }
 
-            extractGuestName(poemText) {
-                // Try to extract guest name from common patterns
-                const patterns = [
-                    /For\s+([^,\n]+)/i,
-                    /^([^,\n]+),?\s*$/m,
-                    /Guest:\s*([^,\n]+)/i
-                ];
+            extractPoemTitle(poemText) {
+                // Get the first line as the poem title
+                const lines = poemText.split('\n');
+                const firstLine = lines[0].trim();
                 
-                for (const pattern of patterns) {
-                    const match = poemText.match(pattern);
-                    if (match && match[1]) {
-                        return match[1].trim();
+                console.log('extractPoemTitle - firstLine:', JSON.stringify(firstLine));
+                console.log('extractPoemTitle - length:', firstLine.length);
+                
+                // Return the first line if it's not empty and not too long
+                if (firstLine && firstLine.length > 0 && firstLine.length < 100) {
+                    return firstLine;
+                }
+                
+                // If first line is empty, try the second line
+                if (lines.length > 1) {
+                    const secondLine = lines[1].trim();
+                    if (secondLine && secondLine.length > 0 && secondLine.length < 100) {
+                        return secondLine;
+                    }
+                }
+                
+                return null;
+            }
+
+            extractGuestName(poemText) {
+                // Look for "Created for [Name]" pattern specifically, usually at the end
+                const lines = poemText.split('\n');
+                
+                // Check the last few lines for "Created for [Name]" pattern
+                for (let i = lines.length - 1; i >= Math.max(0, lines.length - 3); i--) {
+                    const line = lines[i].trim();
+                    const createdForMatch = line.match(/^Created for\s+([^,\n]+)/i);
+                    if (createdForMatch && createdForMatch[1]) {
+                        return createdForMatch[1].trim();
+                    }
+                }
+                
+                // Also check for "For [Name]" pattern (fallback)
+                for (let i = lines.length - 1; i >= Math.max(0, lines.length - 3); i--) {
+                    const line = lines[i].trim();
+                    const forMatch = line.match(/^For\s+([^,\n]+)$/i);
+                    if (forMatch && forMatch[1]) {
+                        return forMatch[1].trim();
                     }
                 }
                 
@@ -758,13 +796,13 @@ RESPONSE STYLE:
 - You should ask guests their name and use it in the poem
 - you should ask guests what style of poem they want you to generate
 - you should ask guests what the theme of the poem should be
-- when you respond with the poem, don't include anything before the poem starts or after the poem except the inscription
+- when you respond with the poem, don't include anything before the poem starts or after the poem except the inscription.
+- Come up with a title of the poem and make that the first line you respond with before the poem. Don't include any other characters or identifiers, just the title"
 - You can ask guest for details, but don't ask questions in the generated poem. The generated poem should be about love and include the details they gave you. Feel free to ask for clarification before generating the poem.
-- you should ask guests important details about Evan and Emily they want to include
 - If you do not have enough information about the guest to generate a unique poem, ask for more information
 - If the guest asks to include details about Evan and Emily, you can, but otherwise don't use the context you know about Evan and Emily
 - In the final poem response, include line breaks that match the meter of the poem, but for other responses use normal punctuation and line breaks.
-- Sign the poem with an inscription that says "For [the guest's name]" and the date and place of the wedding without any dashes.
+- Include an inscription at the end of the poem that says "Created for [the guest's name]"
 - each poem you generate should be unique for each guest
 - Limit the poems to maximum of 13 lines so they fit on the printed paper`
                                 },
@@ -790,6 +828,21 @@ RESPONSE STYLE:
                     
                     // Store the last ChatGPT response for printing
                     this.lastChatGPTResponse = reply;
+                    
+                    // Update the terminal title with the poem title
+                    const poemTitle = this.extractPoemTitle(reply);
+                    console.log('Poem title extracted:', poemTitle);
+                    console.log('Full reply:', reply);
+                    if (poemTitle) {
+                        this.terminalTitle.textContent = poemTitle;
+                    } else {
+                        // Fallback: use first line if it exists, otherwise keep default
+                        const firstLine = reply.split('\n')[0].trim();
+                        console.log('Using first line as fallback:', firstLine);
+                        if (firstLine) {
+                            this.terminalTitle.textContent = firstLine;
+                        }
+                    }
                     
                     // Enable the print button
                     this.printButton.disabled = false;

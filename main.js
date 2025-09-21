@@ -58,13 +58,14 @@ app.on('activate', () => {
 // Handle print request from renderer process
 ipcMain.handle('print-poem', async (event, poemText) => {
   try {
-    // Extract guest name from poem
+    // Extract poem title (first line) and guest name
+    const poemTitle = extractPoemTitle(poemText);
     const guestName = extractGuestName(poemText);
     const weddingDate = 'September 27, 2025';
     const weddingLocation = 'Zion, Utah';
     
     // Format for Zebra label printer
-    const labelContent = formatForZebraLabel(poemText, guestName, weddingDate, weddingLocation);
+    const labelContent = formatForZebraLabel(poemText, poemTitle, guestName, weddingDate, weddingLocation);
     
     // Create a temporary file with the formatted label
     const tempFile = path.join(__dirname, 'temp-poem-label.txt');
@@ -96,18 +97,40 @@ ipcMain.handle('print-poem', async (event, poemText) => {
   }
 });
 
+// Helper function to extract poem title
+function extractPoemTitle(poemText) {
+  // Get the first line as the poem title
+  const lines = poemText.split('\n');
+  const firstLine = lines[0].trim();
+  
+  // Return the first line if it's not empty and not too long
+  if (firstLine && firstLine.length > 0 && firstLine.length < 50) {
+    return firstLine;
+  }
+  
+  return null;
+}
+
 // Helper function to extract guest name
 function extractGuestName(poemText) {
-  const patterns = [
-    /For\s+([^,\n]+)/i,
-    /^([^,\n]+),?\s*$/m,
-    /Guest:\s*([^,\n]+)/i
-  ];
+  // Look for "Created for [Name]" pattern specifically, usually at the end
+  const lines = poemText.split('\n');
   
-  for (const pattern of patterns) {
-    const match = poemText.match(pattern);
-    if (match && match[1]) {
-      return match[1].trim();
+  // Check the last few lines for "Created for [Name]" pattern
+  for (let i = lines.length - 1; i >= Math.max(0, lines.length - 3); i--) {
+    const line = lines[i].trim();
+    const createdForMatch = line.match(/^Created for\s+([^,\n]+)/i);
+    if (createdForMatch && createdForMatch[1]) {
+      return createdForMatch[1].trim();
+    }
+  }
+  
+  // Also check for "For [Name]" pattern (fallback)
+  for (let i = lines.length - 1; i >= Math.max(0, lines.length - 3); i--) {
+    const line = lines[i].trim();
+    const forMatch = line.match(/^For\s+([^,\n]+)$/i);
+    if (forMatch && forMatch[1]) {
+      return forMatch[1].trim();
     }
   }
   
@@ -115,13 +138,16 @@ function extractGuestName(poemText) {
 }
 
 // Helper function to format content for Zebra label
-function formatForZebraLabel(poemText, guestName, weddingDate, weddingLocation) {
-  const header = guestName ? `For ${guestName}` : 'Wedding Guest Poem';
+function formatForZebraLabel(poemText, poemTitle, guestName, weddingDate, weddingLocation) {
+  const header = poemTitle || 'Wedding Guest Poem';
   const footer = `${weddingDate} • ${weddingLocation}`;
   
-  // Format for 4-inch label width (approximately 40 characters)
+  // Remove title from poem content for printing (since title appears in header)
   const lines = poemText.split('\n');
-  const formattedLines = lines.map(line => {
+  const poemLines = lines.slice(1); // Skip first line (title)
+  
+  // Format for 4-inch label width (approximately 40 characters)
+  const formattedLines = poemLines.map(line => {
     if (line.length > 40) {
       // Wrap long lines
       const words = line.split(' ');
